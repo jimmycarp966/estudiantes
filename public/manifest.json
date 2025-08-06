@@ -1,0 +1,119 @@
+{
+  "name": "E-Estudiantes - Plataforma de Estudio Colaborativa",
+  "short_name": "E-Estudiantes",
+  "description": "Plataforma web para estudiantes universitarios, terciarios y autodidactas. Organiza tus estudios, comparte apuntes y potencia tu aprendizaje.",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#f9fafb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["education", "productivity", "social"],
+  "shortcuts": [
+    {
+      "name": "Subir Apuntes",
+      "short_name": "Subir",
+      "description": "Sube nuevos apuntes de estudio",
+      "url": "/upload",
+      "icons": [
+        {
+          "src": "/icons/upload-shortcut.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Biblioteca",
+      "short_name": "Biblioteca",
+      "description": "Busca apuntes en la biblioteca colaborativa",
+      "url": "/shared-library",
+      "icons": [
+        {
+          "src": "/icons/library-shortcut.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Planificador",
+      "short_name": "Planificar",
+      "description": "Organiza tus sesiones de estudio",
+      "url": "/planner",
+      "icons": [
+        {
+          "src": "/icons/planner-shortcut.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Dashboard principal de E-Estudiantes"
+    },
+    {
+      "src": "/screenshots/mobile-library.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Biblioteca colaborativa en móvil"
+    }
+  ]
+}

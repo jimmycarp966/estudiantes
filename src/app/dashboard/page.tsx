@@ -1,7 +1,10 @@
 'use client';
 
+import React from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { UserStatsWidget } from '@/components/analytics/UserStatsWidget';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import { 
   BookOpen, 
   Download, 
@@ -15,6 +18,12 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { trackPageView, trackInteraction } = useAnalytics();
+
+  // Trackear vista de página
+  React.useEffect(() => {
+    trackPageView('dashboard');
+  }, [trackPageView]);
 
   const stats = [
     {
@@ -102,6 +111,9 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* User Analytics */}
+        <UserStatsWidget />
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => {
@@ -186,15 +198,33 @@ export default function Dashboard() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => {
+                trackInteraction('quick-action', 'upload-notes');
+                window.location.href = '/upload';
+              }}
+              className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            >
               <BookOpen className="h-5 w-5 text-blue-600 mr-2" />
               <span className="text-blue-700 font-medium">Subir Apuntes</span>
             </button>
-            <button className="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => {
+                trackInteraction('quick-action', 'start-pomodoro');
+                window.location.href = '/study-tools';
+              }}
+              className="flex items-center justify-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+            >
               <Clock className="h-5 w-5 text-green-600 mr-2" />
               <span className="text-green-700 font-medium">Iniciar Pomodoro</span>
             </button>
-            <button className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => {
+                trackInteraction('quick-action', 'new-goal');
+                window.location.href = '/planner';
+              }}
+              className="flex items-center justify-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+            >
               <Target className="h-5 w-5 text-purple-600 mr-2" />
               <span className="text-purple-700 font-medium">Nueva Meta</span>
             </button>

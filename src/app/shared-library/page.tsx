@@ -2,31 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { NoteCard } from '@/components/notes/NoteCard';
-import { Input } from '@/components/ui/Input';
+import { EnhancedNoteCard } from '@/components/notes/EnhancedNoteCard';
+import { AdvancedFilters } from '@/components/search/AdvancedFilters';
+import { useAdvancedSearch } from '@/hooks/useAdvancedSearch';
+
 
 import { useAuth } from '@/contexts/AuthContext';
 import { Note } from '@/types';
 // Firebase imports se hacen dinámicamente
 import { 
-  Library, 
-  Search, 
-  Filter, 
-
-
+  Library,
   Star,
-  Download
+  Download,
+  Filter
 } from 'lucide-react';
 
 export default function SharedLibraryPage() {
   const { user } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedUniversity, setSelectedUniversity] = useState('');
-  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'rating'>('recent');
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  
+  const {
+    filters,
+    updateFilter,
+    sortBy,
+    setSortBy,
+    filteredAndSortedNotes,
+    clearFilters,
+    searchStats
+  } = useAdvancedSearch(notes);
 
   // Cargar notas públicas
   useEffect(() => {
@@ -78,47 +83,7 @@ export default function SharedLibraryPage() {
     loadNotes();
   }, []);
 
-  // Filtrar y ordenar notas
-  useEffect(() => {
-    let filtered = notes;
-
-    // Filtrar por búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(note =>
-        note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        note.university?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.career?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filtrar por materia
-    if (selectedSubject) {
-      filtered = filtered.filter(note => note.subject === selectedSubject);
-    }
-
-    // Filtrar por universidad
-    if (selectedUniversity) {
-      filtered = filtered.filter(note => note.university === selectedUniversity);
-    }
-
-    // Ordenar
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'popular':
-          return b.downloads - a.downloads;
-        case 'rating':
-          return (b.rating || 0) - (a.rating || 0);
-        case 'recent':
-        default:
-          return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
-      }
-    });
-
-    setFilteredNotes(filtered);
-  }, [notes, searchTerm, selectedSubject, selectedUniversity, sortBy]);
+  // Las notas filtradas ahora se manejan con el hook useAdvancedSearch
 
   const handleDownload = async (note: Note) => {
     try {
@@ -146,9 +111,102 @@ export default function SharedLibraryPage() {
     }
   };
 
+  const handleRatingUpdate = (noteId: string, newRating: number, newCount: number) => {
+    setNotes(prevNotes => 
+      prevNotes.map(note => 
+        note.id === noteId 
+          ? { ...note, rating: newRating, ratingCount: newCount }
+          : note
+      )
+    );
+  };
+
+  const handleFavorite = async (noteId: string) => {
+    if (!user) return;
+
+    try {
+      const { getFirestore, doc, setDoc, deleteDoc } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const db = getFirestore(app);
+
+      const favoriteId = `${user.uid}_${noteId}`;
+      
+      if (favorites.has(noteId)) {
+        // Remover de favoritos
+        await deleteDoc(doc(db, 'favorites', favoriteId));
+        setFavorites(prev => {
+          const newFavorites = new Set(prev);
+          newFavorites.delete(noteId);
+          return newFavorites;
+        });
+      } else {
+        // Agregar a favoritos
+        await setDoc(doc(db, 'favorites', favoriteId), {
+          userId: user.uid,
+          noteId,
+          createdAt: new Date()
+        });
+        setFavorites(prev => new Set(prev).add(noteId));
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  // Cargar favoritos del usuario
+  useEffect(() => {
+    if (!user) return;
+
+    const loadFavorites = async () => {
+      try {
+        const { getFirestore, collection, query, where, getDocs } = await import('firebase/firestore');
+        const { initializeApp, getApps } = await import('firebase/app');
+        
+        const firebaseConfig = {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const db = getFirestore(app);
+
+        const q = query(
+          collection(db, 'favorites'),
+          where('userId', '==', user.uid)
+        );
+
+        const favoritesSnapshot = await getDocs(q);
+        const userFavorites = new Set(
+          favoritesSnapshot.docs.map(doc => doc.data().noteId)
+        );
+        
+        setFavorites(userFavorites);
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+      }
+    };
+
+    loadFavorites();
+  }, [user]);
+
   // Obtener opciones únicas para filtros
   const subjects = Array.from(new Set(notes.map(note => note.subject))).sort();
-  const universities = Array.from(new Set(notes.map(note => note.university).filter(Boolean))).sort();
+  const universities = Array.from(new Set(notes.map(note => note.university).filter(Boolean) as string[])).sort();
 
   const stats = {
     totalNotes: notes.length,
@@ -224,67 +282,50 @@ export default function SharedLibraryPage() {
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-            {/* Search */}
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  placeholder="Buscar apuntes, materias, universidades..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+        {/* Advanced Filters */}
+        <AdvancedFilters
+          filters={filters}
+          onFiltersChange={(newFilters) => Object.keys(newFilters).forEach(key => 
+            updateFilter(key as keyof typeof newFilters, newFilters[key as keyof typeof newFilters])
+          )}
+          subjects={subjects}
+          universities={universities}
+          onClearFilters={clearFilters}
+        />
 
-            {/* Subject Filter */}
-            <div>
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Todas las materias</option>
-                {subjects.map(subject => (
-                  <option key={subject} value={subject}>{subject}</option>
-                ))}
-              </select>
+        {/* Search Results Summary */}
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <span>
+                {searchStats.totalResults} de {searchStats.totalNotes} apuntes
+              </span>
+              {searchStats.averageRating > 0 && (
+                <span className="flex items-center">
+                  <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                  {searchStats.averageRating.toFixed(1)} promedio
+                </span>
+              )}
+              <span>
+                {searchStats.totalDownloads.toLocaleString()} descargas totales
+              </span>
             </div>
-
-            {/* University Filter */}
-            <div>
-              <select
-                value={selectedUniversity}
-                onChange={(e) => setSelectedUniversity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Todas las universidades</option>
-                {universities.map(university => (
-                  <option key={university} value={university}>{university}</option>
-                ))}
-              </select>
-            </div>
-
+            
             {/* Sort */}
-            <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Ordenar:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'recent' | 'popular' | 'rating')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => setSortBy(e.target.value as 'recent' | 'popular' | 'rating' | 'title')}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="recent">Más recientes</option>
                 <option value="popular">Más descargados</option>
                 <option value="rating">Mejor valorados</option>
+                <option value="title">Alfabético</option>
               </select>
             </div>
           </div>
-
-          <p className="text-sm text-gray-600">
-            {filteredNotes.length} apunte{filteredNotes.length !== 1 ? 's' : ''} encontrado{filteredNotes.length !== 1 ? 's' : ''}
-          </p>
         </div>
 
         {/* Notes Grid */}
@@ -293,7 +334,7 @@ export default function SharedLibraryPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Cargando biblioteca...</p>
           </div>
-        ) : filteredNotes.length === 0 ? (
+        ) : filteredAndSortedNotes.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Library className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -308,11 +349,14 @@ export default function SharedLibraryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredNotes.map(note => (
-              <NoteCard
+            {filteredAndSortedNotes.map(note => (
+              <EnhancedNoteCard
                 key={note.id}
                 note={note}
                 onDownload={handleDownload}
+                onRatingUpdate={handleRatingUpdate}
+                onFavorite={handleFavorite}
+                isFavorited={favorites.has(note.id)}
               />
             ))}
           </div>
