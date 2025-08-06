@@ -18,7 +18,6 @@ import {
   updateDoc,
   increment
 } from 'firebase/firestore';
-import { requireDb } from '@/lib/firebaseHelpers';
 import { 
   BookOpen, 
   Search, 
@@ -44,30 +43,51 @@ export default function MyLibraryPage() {
   useEffect(() => {
     if (!user) return;
     
-    try {
-      const firestore = requireDb();
-      const q = query(
-        collection(firestore, 'notes'),
-        where('uploadedBy', '==', user.uid),
-        orderBy('uploadedAt', 'desc')
-      );
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') return;
+    
+    const loadNotes = async () => {
+      try {
+        const { getFirestore, collection, query, where, orderBy, onSnapshot } = await import('firebase/firestore');
+        const { initializeApp, getApps } = await import('firebase/app');
+        
+        const firebaseConfig = {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const firestore = getFirestore(app);
+        
+        const q = query(
+          collection(firestore, 'notes'),
+          where('uploadedBy', '==', user.uid),
+          orderBy('uploadedAt', 'desc')
+        );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        uploadedAt: doc.data().uploadedAt?.toDate() || new Date(),
-      })) as Note[];
-      
-      setNotes(notesData);
-      setLoading(false);
-    });
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const notesData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            uploadedAt: doc.data().uploadedAt?.toDate() || new Date(),
+          })) as Note[];
+          
+          setNotes(notesData);
+          setLoading(false);
+        });
 
-      return unsubscribe;
-    } catch (error) {
-      console.error('Error initializing Firestore:', error);
-      setLoading(false);
-    }
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error initializing Firestore:', error);
+        setLoading(false);
+      }
+    };
+    
+    loadNotes();
   }, [user]);
 
   // Filtrar y ordenar notas
@@ -109,7 +129,21 @@ export default function MyLibraryPage() {
     if (!confirm('¿Estás seguro de que quieres eliminar este apunte?')) return;
 
     try {
-      const firestore = requireDb();
+      const { getFirestore, doc, deleteDoc } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const firestore = getFirestore(app);
+      
       await deleteDoc(doc(firestore, 'notes', noteId));
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -120,7 +154,21 @@ export default function MyLibraryPage() {
   const handleDownload = async (note: Note) => {
     try {
       // Incrementar contador de descargas
-      const firestore = requireDb();
+      const { getFirestore, doc, updateDoc, increment } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const firestore = getFirestore(app);
+      
       await updateDoc(doc(firestore, 'notes', note.id), {
         downloads: increment(1)
       });
