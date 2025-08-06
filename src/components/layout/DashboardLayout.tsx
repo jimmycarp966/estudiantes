@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from './Sidebar';
+import { Footer } from './Footer';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -32,17 +33,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Sidebar />
       
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 flex-1">
         <main className="py-4 lg:py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {children}
           </div>
         </main>
       </div>
+      
+      <Footer />
     </div>
   );
 };

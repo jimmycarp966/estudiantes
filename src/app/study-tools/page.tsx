@@ -2,6 +2,9 @@
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PomodoroTimer } from '@/components/study-tools/PomodoroTimer';
+import { AISummaryWidget } from '@/components/ai/AISummaryWidget';
+import { AIFlashcardsWidget } from '@/components/ai/AIFlashcardsWidget';
+import { AIStudyPlanWidget } from '@/components/ai/AIStudyPlanWidget';
 import { 
   Clock, 
   Brain, 
@@ -67,6 +70,31 @@ export default function StudyToolsPage() {
                 <h2 className="text-xl font-semibold text-gray-900">Temporizador Pomodoro</h2>
               </div>
               <PomodoroTimer />
+            </div>
+          </div>
+
+          {/* AI Tools */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center mb-6">
+                <Brain className="h-6 w-6 text-purple-600 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-900">Herramientas de IA</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <AISummaryWidget
+                  noteId="demo"
+                  title="Demo de Resumen"
+                  subject="Matemáticas"
+                  content="Este es un contenido de ejemplo para demostrar las capacidades de la IA. La inteligencia artificial puede analizar textos educativos y generar resúmenes automáticos, extraer puntos clave, crear preguntas de estudio y estimar el tiempo de aprendizaje necesario."
+                />
+                <AIFlashcardsWidget
+                  noteId="demo"
+                  title="Demo de Flashcards"
+                  subject="Matemáticas"
+                  content="Este es un contenido de ejemplo para demostrar las capacidades de la IA. La inteligencia artificial puede analizar textos educativos y generar resúmenes automáticos, extraer puntos clave, crear preguntas de estudio y estimar el tiempo de aprendizaje necesario."
+                />
+                <AIStudyPlanWidget userId="demo" />
+              </div>
             </div>
           </div>
 
