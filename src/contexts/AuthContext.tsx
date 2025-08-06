@@ -1,22 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User as FirebaseUser,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, googleProvider, db } from '@/lib/firebase';
 import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  firebaseUser: FirebaseUser | null;
+  firebaseUser: unknown | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
@@ -36,119 +25,185 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<unknown | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth || !db) return;
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setFirebaseUser(firebaseUser);
-      
-      if (firebaseUser) {
-        // Obtener o crear perfil de usuario en Firestore
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email!,
-            displayName: firebaseUser.displayName || userData.displayName,
-            photoURL: firebaseUser.photoURL || userData.photoURL,
-            createdAt: userData.createdAt?.toDate() || new Date(),
-            lastLoginAt: new Date(),
-          });
-        } else {
-          // Crear nuevo documento de usuario
-          const newUser: User = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email!,
-            displayName: firebaseUser.displayName || '',
-            photoURL: firebaseUser.photoURL || '',
-            createdAt: new Date(),
-            lastLoginAt: new Date(),
-          };
-          
-          await setDoc(doc(db, 'users', firebaseUser.uid), {
-            ...newUser,
-            createdAt: new Date(),
-            lastLoginAt: new Date(),
-          });
-          
-          setUser(newUser);
-        }
-      } else {
-        setUser(null);
-      }
-      
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') {
       setLoading(false);
-    });
+      return;
+    }
+    
+    const initAuth = async () => {
+      try {
+        const { getAuth, onAuthStateChanged } = await import('firebase/auth');
+        const { getFirestore, doc, getDoc, setDoc } = await import('firebase/firestore');
+        const { initializeApp, getApps } = await import('firebase/app');
+        
+        const firebaseConfig = {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          setFirebaseUser(firebaseUser);
+          
+          if (firebaseUser) {
+            // Obtener o crear perfil de usuario en Firestore
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName || userData.displayName,
+                photoURL: firebaseUser.photoURL || userData.photoURL,
+                createdAt: userData.createdAt?.toDate() || new Date(),
+                lastLoginAt: new Date(),
+              });
+            } else {
+              // Crear nuevo documento de usuario
+              const newUser = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName || '',
+                photoURL: firebaseUser.photoURL || '',
+                createdAt: new Date(),
+                lastLoginAt: new Date(),
+              };
+              
+              await setDoc(doc(db, 'users', firebaseUser.uid), {
+                ...newUser,
+                createdAt: new Date(),
+                lastLoginAt: new Date(),
+              });
+              
+              setUser(newUser);
+            }
+          } else {
+            setUser(null);
+          }
+          
+          setLoading(false);
+        });
 
-    return unsubscribe;
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error initializing Firebase Auth:', error);
+        setLoading(false);
+      }
+    };
+    
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    if (!auth) throw new Error('Firebase not initialized');
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error('Error al iniciar sesión:', error);
-      throw error;
-    }
+    const { getAuth, signInWithEmailAndPassword } = await import('firebase/auth');
+    const { initializeApp, getApps } = await import('firebase/app');
+    
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    };
+    
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    const auth = getAuth(app);
+    
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const register = async (email: string, password: string, displayName: string) => {
-    if (!auth || !db) throw new Error('Firebase not initialized');
-    try {
-      const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
-      
-      await updateProfile(firebaseUser, {
-        displayName: displayName
-      });
+    const { getAuth, createUserWithEmailAndPassword, updateProfile } = await import('firebase/auth');
+    const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+    const { initializeApp, getApps } = await import('firebase/app');
+    
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    };
+    
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
+    
+    await updateProfile(firebaseUser, {
+      displayName: displayName
+    });
 
-      // Crear documento de usuario en Firestore
-      const newUser: User = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        displayName: displayName,
-        photoURL: '',
-        createdAt: new Date(),
-        lastLoginAt: new Date(),
-      };
+    const newUser = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email!,
+      displayName: displayName,
+      photoURL: '',
+      createdAt: new Date(),
+      lastLoginAt: new Date(),
+    };
 
-      await setDoc(doc(db, 'users', firebaseUser.uid), {
-        ...newUser,
-        createdAt: new Date(),
-        lastLoginAt: new Date(),
-      });
-
-    } catch (error) {
-      console.error('Error al registrarse:', error);
-      throw error;
-    }
+    await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
   };
 
   const loginWithGoogle = async () => {
-    if (!auth || !googleProvider) throw new Error('Firebase not initialized');
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error('Error al iniciar sesión con Google:', error);
-      throw error;
-    }
+    const { getAuth, GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+    const { initializeApp, getApps } = await import('firebase/app');
+    
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    };
+    
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    await signInWithPopup(auth, googleProvider);
   };
 
   const logout = async () => {
-    if (!auth) throw new Error('Firebase not initialized');
-    try {
-      await signOut(auth);
-      setUser(null);
-      setFirebaseUser(null);
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-      throw error;
-    }
+    const { getAuth, signOut } = await import('firebase/auth');
+    const { initializeApp, getApps } = await import('firebase/app');
+    
+    const firebaseConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    };
+    
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    const auth = getAuth(app);
+    
+    await signOut(auth);
+    setUser(null);
+    setFirebaseUser(null);
   };
 
   const value = {

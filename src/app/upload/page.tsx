@@ -6,8 +6,7 @@ import { FileUpload } from '@/components/notes/FileUpload';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+// Firebase imports se hacen dinámicamente
 import { CheckCircle, BookOpen } from 'lucide-react';
 
 export default function UploadPage() {
@@ -46,6 +45,21 @@ export default function UploadPage() {
     setLoading(true);
 
     try {
+      const { getFirestore, collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const firestore = getFirestore(app);
+      
       const noteData = {
         title: formData.title,
         description: formData.description,
@@ -67,7 +81,7 @@ export default function UploadPage() {
         category: formData.isPublic ? 'shared' : 'personal'
       };
 
-      await addDoc(collection(db, 'notes'), noteData);
+      await addDoc(collection(firestore, 'notes'), noteData);
       
       setSuccess(true);
       

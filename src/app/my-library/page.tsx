@@ -7,17 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import { Note } from '@/types';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot,
-  doc,
-  deleteDoc,
-  updateDoc,
-  increment
-} from 'firebase/firestore';
+// Firebase imports se hacen dinámicamente
 import { 
   BookOpen, 
   Search, 

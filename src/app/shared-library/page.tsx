@@ -7,18 +7,7 @@ import { Input } from '@/components/ui/Input';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { Note } from '@/types';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot,
-  doc,
-  updateDoc,
-  increment,
-  limit
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+// Firebase imports se hacen dinámicamente
 import { 
   Library, 
   Search, 
@@ -41,25 +30,52 @@ export default function SharedLibraryPage() {
 
   // Cargar notas públicas
   useEffect(() => {
-    const q = query(
-      collection(db, 'notes'),
-      where('isPublic', '==', true),
-      orderBy('uploadedAt', 'desc'),
-      limit(100)
-    );
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') return;
+    
+    const loadNotes = async () => {
+      try {
+        const { getFirestore, collection, query, where, orderBy, onSnapshot, limit } = await import('firebase/firestore');
+        const { initializeApp, getApps } = await import('firebase/app');
+        
+        const firebaseConfig = {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        };
+        
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const firestore = getFirestore(app);
+        
+        const q = query(
+          collection(firestore, 'notes'),
+          where('isPublic', '==', true),
+          orderBy('uploadedAt', 'desc'),
+          limit(100)
+        );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        uploadedAt: doc.data().uploadedAt?.toDate() || new Date(),
-      })) as Note[];
-      
-      setNotes(notesData);
-      setLoading(false);
-    });
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const notesData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            uploadedAt: doc.data().uploadedAt?.toDate() || new Date(),
+          })) as Note[];
+          
+          setNotes(notesData);
+          setLoading(false);
+        });
 
-    return unsubscribe;
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error loading notes:', error);
+        setLoading(false);
+      }
+    };
+    
+    loadNotes();
   }, []);
 
   // Filtrar y ordenar notas
@@ -107,7 +123,22 @@ export default function SharedLibraryPage() {
   const handleDownload = async (note: Note) => {
     try {
       // Incrementar contador de descargas
-      await updateDoc(doc(db, 'notes', note.id), {
+      const { getFirestore, doc, updateDoc, increment } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const firestore = getFirestore(app);
+      
+      await updateDoc(doc(firestore, 'notes', note.id), {
         downloads: increment(1)
       });
     } catch (error) {

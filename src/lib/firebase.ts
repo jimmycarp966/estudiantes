@@ -12,30 +12,6 @@ const firebaseConfig = {
 // Inicializar Firebase solo si no hay apps inicializadas
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Solo importar y exportar servicios si estamos en el cliente
-let auth: unknown = null;
-let db: unknown = null;
-let storage: unknown = null;
-let googleProvider: unknown = null;
-
-if (typeof window !== 'undefined') {
-  // Solo en el cliente
-  import('firebase/auth').then((authModule) => {
-    auth = authModule.getAuth(app);
-    googleProvider = new authModule.GoogleAuthProvider();
-    googleProvider.setCustomParameters({
-      prompt: 'select_account'
-    });
-  });
-  
-  import('firebase/firestore').then((firestoreModule) => {
-    db = firestoreModule.getFirestore(app);
-  });
-  
-  import('firebase/storage').then((storageModule) => {
-    storage = storageModule.getStorage(app);
-  });
-}
-
-export { auth, db, storage, googleProvider };
+// Exportar solo la app base, los servicios se importan dinámicamente
 export default app;
+export { firebaseConfig };
