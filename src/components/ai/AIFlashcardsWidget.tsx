@@ -27,7 +27,6 @@ interface Flashcard {
 }
 
 export const AIFlashcardsWidget: React.FC<AIFlashcardsWidgetProps> = ({
-  noteId,
   title,
   subject,
   content

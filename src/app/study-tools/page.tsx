@@ -82,18 +82,16 @@ export default function StudyToolsPage() {
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <AISummaryWidget
-                  noteId="demo"
                   title="Demo de Resumen"
                   subject="Matemáticas"
                   content="Este es un contenido de ejemplo para demostrar las capacidades de la IA. La inteligencia artificial puede analizar textos educativos y generar resúmenes automáticos, extraer puntos clave, crear preguntas de estudio y estimar el tiempo de aprendizaje necesario."
                 />
                 <AIFlashcardsWidget
-                  noteId="demo"
                   title="Demo de Flashcards"
                   subject="Matemáticas"
                   content="Este es un contenido de ejemplo para demostrar las capacidades de la IA. La inteligencia artificial puede analizar textos educativos y generar resúmenes automáticos, extraer puntos clave, crear preguntas de estudio y estimar el tiempo de aprendizaje necesario."
                 />
-                <AIStudyPlanWidget userId="demo" />
+                <AIStudyPlanWidget />
               </div>
             </div>
           </div>

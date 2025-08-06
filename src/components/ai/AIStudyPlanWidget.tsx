@@ -27,9 +27,7 @@ interface StudyPlan {
   tips: string[];
 }
 
-export const AIStudyPlanWidget: React.FC<AIStudyPlanWidgetProps> = ({
-  userId
-}) => {
+export const AIStudyPlanWidget: React.FC<AIStudyPlanWidgetProps> = () => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [loading, setLoading] = useState(false);
   const [subjects, setSubjects] = useState<string[]>(['Matemáticas', 'Física', 'Química']);

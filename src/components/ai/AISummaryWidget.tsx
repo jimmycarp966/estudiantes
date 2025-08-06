@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 interface AISummaryWidgetProps {
-  noteId: string;
+  noteId?: string;
   title: string;
   subject: string;
   content: string;
@@ -34,7 +34,6 @@ interface AISummaryWidgetProps {
 }
 
 export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
-  noteId,
   title,
   subject,
   content,
@@ -139,7 +138,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
             </label>
             <select
               value={summaryType}
-              onChange={(e) => setSummaryType(e.target.value as any)}
+              onChange={(e) => setSummaryType(e.target.value as 'summary' | 'key-points' | 'questions' | 'mind-map')}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="summary">Resumen completo</option>
@@ -180,7 +179,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => copyToClipboard(JSON.stringify(summary as any, null, 2), 'full')}
+            onClick={() => copyToClipboard(JSON.stringify(summary, null, 2), 'full')}
           >
             {copied === 'full' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
@@ -201,7 +200,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-900">
-              {(summary as any).estimatedTime} min
+              {summary.estimatedTime} min
             </span>
           </div>
           <p className="text-xs text-blue-700">Tiempo estimado</p>
@@ -210,8 +209,8 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
         <div className="bg-green-50 rounded-lg p-3">
           <div className="flex items-center space-x-2">
             <Target className="h-4 w-4 text-green-600" />
-            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getDifficultyColor((summary as any).difficulty)}`}>
-              {getDifficultyText((summary as any).difficulty)}
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${getDifficultyColor(summary.difficulty)}`}>
+              {getDifficultyText(summary.difficulty)}
             </span>
           </div>
           <p className="text-xs text-green-700">Nivel de dificultad</p>
@@ -221,7 +220,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
           <div className="flex items-center space-x-2">
             <Tag className="h-4 w-4 text-purple-600" />
             <span className="text-sm font-medium text-purple-900">
-              {(summary as any).tags?.length || 0} tags
+              {summary.tags?.length || 0} tags
             </span>
           </div>
           <p className="text-xs text-purple-700">Conceptos clave</p>
@@ -249,12 +248,12 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
           {expandedSections.has('summary') && (
             <div className="px-4 pb-4">
               <p className="text-gray-700 leading-relaxed mb-3">
-                {(summary as any).summary}
+                {summary.summary}
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copyToClipboard((summary as any).summary, 'summary')}
+                onClick={() => copyToClipboard(summary.summary, 'summary')}
               >
                 {copied === 'summary' ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                 Copiar resumen
@@ -264,7 +263,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
         </div>
 
         {/* Key Points Section */}
-        {(summary as any).keyPoints && (summary as any).keyPoints.length > 0 && (
+        {summary.keyPoints && summary.keyPoints.length > 0 && (
           <div className="border border-gray-200 rounded-lg">
             <button
               onClick={() => toggleSection('keyPoints')}
@@ -273,7 +272,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
               <div className="flex items-center space-x-2">
                 <Lightbulb className="h-4 w-4 text-yellow-600" />
                 <span className="font-medium text-gray-900">Puntos Clave</span>
-                <span className="text-sm text-gray-500">({(summary as any).keyPoints.length})</span>
+                <span className="text-sm text-gray-500">({summary.keyPoints.length})</span>
               </div>
               {expandedSections.has('keyPoints') ? (
                 <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -285,7 +284,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
             {expandedSections.has('keyPoints') && (
               <div className="px-4 pb-4">
                 <ul className="space-y-2">
-                  {(summary as any).keyPoints.map((point: string, index: number) => (
+                  {summary.keyPoints.map((point: string, index: number) => (
                     <li key={index} className="flex items-start space-x-2">
                       <span className="flex-shrink-0 w-2 h-2 bg-yellow-500 rounded-full mt-2"></span>
                       <span className="text-gray-700">{point}</span>
@@ -298,7 +297,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
         )}
 
         {/* Questions Section */}
-        {(summary as any).questions && (summary as any).questions.length > 0 && (
+        {summary.questions && summary.questions.length > 0 && (
           <div className="border border-gray-200 rounded-lg">
             <button
               onClick={() => toggleSection('questions')}
@@ -307,7 +306,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
               <div className="flex items-center space-x-2">
                 <Target className="h-4 w-4 text-blue-600" />
                 <span className="font-medium text-gray-900">Preguntas de Estudio</span>
-                <span className="text-sm text-gray-500">({(summary as any).questions.length})</span>
+                <span className="text-sm text-gray-500">({summary.questions.length})</span>
               </div>
               {expandedSections.has('questions') ? (
                 <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -319,7 +318,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
             {expandedSections.has('questions') && (
               <div className="px-4 pb-4">
                 <div className="space-y-3">
-                  {(summary as any).questions.map((question: string, index: number) => (
+                  {summary.questions.map((question: string, index: number) => (
                     <div key={index} className="bg-blue-50 rounded-lg p-3">
                       <p className="text-gray-800 font-medium">
                         {index + 1}. {question}
@@ -333,7 +332,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
         )}
 
         {/* Tags Section */}
-        {(summary as any).tags && (summary as any).tags.length > 0 && (
+        {summary.tags && summary.tags.length > 0 && (
           <div className="border border-gray-200 rounded-lg">
             <button
               onClick={() => toggleSection('tags')}
@@ -342,7 +341,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
               <div className="flex items-center space-x-2">
                 <Tag className="h-4 w-4 text-purple-600" />
                 <span className="font-medium text-gray-900">Conceptos Clave</span>
-                <span className="text-sm text-gray-500">({(summary as any).tags.length})</span>
+                <span className="text-sm text-gray-500">({summary.tags.length})</span>
               </div>
               {expandedSections.has('tags') ? (
                 <ChevronUp className="h-4 w-4 text-gray-500" />
@@ -354,7 +353,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
             {expandedSections.has('tags') && (
               <div className="px-4 pb-4">
                 <div className="flex flex-wrap gap-2">
-                  {(summary as any).tags.map((tag: string, index: number) => (
+                  {summary.tags.map((tag: string, index: number) => (
                     <span
                       key={index}
                       className="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full"
@@ -384,7 +383,7 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => copyToClipboard(JSON.stringify(summary as any, null, 2), 'full')}
+          onClick={() => copyToClipboard(JSON.stringify(summary, null, 2), 'full')}
         >
           {copied === 'full' ? <Check className="h-4 w-4" /> : <Download className="h-4 w-4" />}
         </Button>
@@ -394,10 +393,10 @@ export const AISummaryWidget: React.FC<AISummaryWidgetProps> = ({
           onClick={() => {
             navigator.share?.({
               title: `Resumen de ${title}`,
-              text: (summary as any).summary,
+              text: summary.summary,
               url: window.location.href
             }).catch(() => {
-                              copyToClipboard((summary as any).summary, 'share');
+                              copyToClipboard(summary.summary, 'share');
             });
           }}
         >

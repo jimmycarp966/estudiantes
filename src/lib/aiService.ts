@@ -212,13 +212,14 @@ export class AIService {
     };
   }
 
-  async generateFlashcards(content: string, subject: string): Promise<Array<{question: string, answer: string}>> {
+  async generateFlashcards(contentText: string, subject: string): Promise<Array<{question: string, answer: string}>> {
     if (!this.apiKey) {
-      return this.generateBasicFlashcards(content, subject);
+      return this.generateBasicFlashcards(contentText);
     }
 
     try {
-      const prompt = `Genera 5 tarjetas de estudio (flashcards) para el siguiente contenido de ${subject}:\n\n${content.substring(0, 1500)}...\n\nResponde en formato JSON:\n[{"question": "pregunta", "answer": "respuesta"}, ...]`;
+      const contentSubstring = contentText.substring(0, 1500);
+      const promptText: string = `Genera 5 tarjetas de estudio (flashcards) para el siguiente contenido de ${subject}:\n\n${contentSubstring}...\n\nResponde en formato JSON:\n[{"question": "pregunta", "answer": "respuesta"}, ...]`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -235,7 +236,7 @@ export class AIService {
             },
             {
               role: 'user',
-              content: prompt
+              content: promptText
             }
           ],
           max_tokens: 800,
@@ -263,10 +264,10 @@ export class AIService {
         console.error('Error parseando flashcards:', error);
       }
 
-      return this.generateBasicFlashcards(content);
+      return this.generateBasicFlashcards(contentText);
     } catch (error) {
       console.error('Error generando flashcards con IA:', error);
-      return this.generateBasicFlashcards(content);
+      return this.generateBasicFlashcards(contentText);
     }
   }
 
