@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return unsubscribe;
-  }, [auth, db]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error('Firebase not initialized');

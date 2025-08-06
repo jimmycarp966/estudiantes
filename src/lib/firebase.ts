@@ -13,10 +13,10 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Solo importar y exportar servicios si estamos en el cliente
-let auth: any = null;
-let db: any = null;
-let storage: any = null;
-let googleProvider: any = null;
+let auth: unknown = null;
+let db: unknown = null;
+let storage: unknown = null;
+let googleProvider: unknown = null;
 
 if (typeof window !== 'undefined') {
   // Solo en el cliente
