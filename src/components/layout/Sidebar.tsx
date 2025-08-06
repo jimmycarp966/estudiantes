@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { 
   BookOpen, 
   Home, 
@@ -17,23 +18,51 @@ import {
   X,
   User,
   Calendar,
-  Target
+  Target,
+  Shield,
+  Flag,
+  TrendingUp,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Mi Biblioteca', href: '/my-library', icon: BookOpen },
-  { name: 'Biblioteca Colaborativa', href: '/shared-library', icon: Library },
-  { name: 'Subir Apuntes', href: '/upload', icon: Upload },
-  { name: 'Herramientas de Estudio', href: '/study-tools', icon: Clock },
-  { name: 'Planificador', href: '/planner', icon: Calendar },
-  { name: 'Progreso', href: '/progress', icon: Target },
-];
+const getNavigation = (isAdmin: boolean, isModerator: boolean) => {
+  const baseNavigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Mi Biblioteca', href: '/my-library', icon: BookOpen },
+    { name: 'Biblioteca Colaborativa', href: '/shared-library', icon: Library },
+    { name: 'Subir Apuntes', href: '/upload', icon: Upload },
+    { name: 'Herramientas de Estudio', href: '/study-tools', icon: Clock },
+    { name: 'Planificador', href: '/planner', icon: Calendar },
+    { name: 'Progreso', href: '/progress', icon: Target },
+  ];
+
+  const adminNavigation = [
+    { name: 'Panel de Admin', href: '/admin', icon: Shield },
+    { name: 'Reportes', href: '/admin/reports', icon: Flag },
+    { name: 'Usuarios', href: '/admin/users', icon: Users },
+    { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+  ];
+
+  const moderatorNavigation = [
+    { name: 'Moderación', href: '/moderation', icon: Flag },
+  ];
+
+  const settingsNav = [
+    { name: 'Configuración', href: '/settings', icon: Settings },
+  ];
+
+  return [
+    ...baseNavigation,
+    ...(isAdmin ? adminNavigation : isModerator ? moderatorNavigation : []),
+    ...settingsNav
+  ];
+};
 
 export const Sidebar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { isAdmin, isModerator } = useAdmin();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -72,10 +101,24 @@ export const Sidebar: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">
-              {user?.displayName || 'Usuario'}
-            </p>
+          <div className="ml-3 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-gray-900">
+                {user?.displayName || 'Usuario'}
+              </p>
+              {isAdmin && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Admin
+                </span>
+              )}
+              {isModerator && !isAdmin && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                  <Flag className="h-3 w-3 mr-1" />
+                  Mod
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500">{user?.email}</p>
           </div>
         </div>
@@ -83,7 +126,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {navigation.map((item) => {
+        {getNavigation(isAdmin, isModerator).map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           

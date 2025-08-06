@@ -61,8 +61,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Obtener o crear perfil de usuario en Firestore
             const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
             
+            // Lista de emails de administradores
+            const adminEmails = [
+              'admin@estudiantes.com',
+              'tu_email@gmail.com', // Cambia por tu email real
+            ];
+            
             if (userDoc.exists()) {
               const userData = userDoc.data();
+              
+              // Auto-promover a admin si el email está en la lista
+              let userRole = userData.role;
+              if (adminEmails.includes(firebaseUser.email!) && !userRole) {
+                userRole = 'admin';
+                await setDoc(doc(db, 'users', firebaseUser.uid), {
+                  ...userData,
+                  role: 'admin',
+                  isVerified: true
+                }, { merge: true });
+              }
+              
               setUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email!,
@@ -70,9 +88,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 photoURL: firebaseUser.photoURL || userData.photoURL,
                 createdAt: userData.createdAt?.toDate() || new Date(),
                 lastLoginAt: new Date(),
+                role: userRole || 'user',
+                isVerified: userData.isVerified || false,
+                stats: userData.stats || {
+                  totalUploads: 0,
+                  totalDownloads: 0,
+                  totalRatings: 0,
+                  studyStreak: 0
+                }
               });
             } else {
               // Crear nuevo documento de usuario
+              const isNewAdmin = adminEmails.includes(firebaseUser.email!);
               const newUser = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email!,
@@ -80,6 +107,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 photoURL: firebaseUser.photoURL || '',
                 createdAt: new Date(),
                 lastLoginAt: new Date(),
+                role: (isNewAdmin ? 'admin' : 'user') as 'user' | 'admin' | 'moderator',
+                isVerified: isNewAdmin,
+                stats: {
+                  totalUploads: 0,
+                  totalDownloads: 0,
+                  totalRatings: 0,
+                  studyStreak: 0
+                }
               };
               
               await setDoc(doc(db, 'users', firebaseUser.uid), {
