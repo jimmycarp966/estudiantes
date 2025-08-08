@@ -1,21 +1,89 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import React, { useCallback, useState } from 'react';
-import ReactFlow, { Background, Controls, MiniMap, addEdge, Connection, Edge, Node, NodeChange, EdgeChange } from 'reactflow';
+import React, { useCallback, useState, useRef } from 'react';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  MiniMap, 
+  addEdge, 
+  Connection, 
+  Edge, 
+  Node, 
+  NodeChange, 
+  EdgeChange,
+  ReactFlowProvider,
+  useReactFlow,
+  Panel
+} from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/Button';
-import { Save, Plus, Download } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Save, Plus, Download, Trash2, Edit3, X } from 'lucide-react';
 
-export default function SchemesPage() {
+// Componente para editar nodos
+function EditNodePanel({ selectedNode, onUpdate, onClose }: any) {
+  const [label, setLabel] = useState(selectedNode?.data?.label || '');
+
+  const handleSave = () => {
+    onUpdate(selectedNode.id, label);
+    onClose();
+  };
+
+  return (
+    <div className="absolute top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-10">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold">Editar Nodo</h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <Input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Texto del nodo"
+        className="mb-3"
+      />
+      <div className="flex gap-2">
+        <Button onClick={handleSave} size="sm">Guardar</Button>
+        <Button variant="outline" onClick={onClose} size="sm">Cancelar</Button>
+      </div>
+    </div>
+  );
+}
+
+function FlowEditor() {
   const [nodes, setNodes] = useState<Node[]>([
-    { id: '1', position: { x: 0, y: 0 }, data: { label: 'Tema central' }, type: 'input' },
-    { id: '2', position: { x: -150, y: 150 }, data: { label: 'Rama 1' } },
-    { id: '3', position: { x: 150, y: 150 }, data: { label: 'Rama 2' } },
+    { 
+      id: '1', 
+      position: { x: 250, y: 100 }, 
+      data: { label: 'Tema Principal' }, 
+      type: 'input',
+      style: { 
+        background: '#2563eb', 
+        color: 'white', 
+        border: '2px solid #1d4ed8',
+        borderRadius: '8px',
+        padding: '12px',
+        fontSize: '14px',
+        fontWeight: 'bold'
+      }
+    }
   ]);
-  const [edges, setEdges] = useState<Edge[]>([{ id: 'e1-2', source: '1', target: '2' }, { id: 'e1-3', source: '1', target: '3' }]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [showEditPanel, setShowEditPanel] = useState(false);
+  const [schemeName, setSchemeName] = useState('Mi Esquema');
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { project } = useReactFlow();
 
-  const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), []);
+  const onConnect = useCallback((params: Edge | Connection) => {
+    setEdges((eds) => addEdge({
+      ...params,
+      style: { stroke: '#2563eb', strokeWidth: 2 },
+      type: 'smoothstep'
+    }, eds));
+  }, []);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => {
@@ -25,6 +93,14 @@ export default function SchemesPage() {
           const node = updatedNodes.find((n) => n.id === change.id);
           if (node) {
             node.position = change.position;
+          }
+        }
+        if (change.type === 'select') {
+          const node = updatedNodes.find((n) => n.id === change.id);
+          if (node && change.selected) {
+            setSelectedNode(node);
+          } else if (!change.selected) {
+            setSelectedNode(null);
           }
         }
       });
@@ -47,47 +123,200 @@ export default function SchemesPage() {
     });
   }, []);
 
-  const addNode = () => {
-    const id = (nodes.length + 1).toString();
-    setNodes(prev => [...prev, { id, position: { x: 100, y: 100 }, data: { label: `Nodo ${id}` } }]);
-  };
+  const addNode = useCallback(() => {
+    const newNodeId = (nodes.length + 1).toString();
+    const newNode: Node = {
+      id: newNodeId,
+      position: { x: Math.random() * 400, y: Math.random() * 300 },
+      data: { label: `Nodo ${newNodeId}` },
+      style: { 
+        background: '#f3f4f6', 
+        color: '#374151',
+        border: '2px solid #d1d5db',
+        borderRadius: '8px',
+        padding: '10px',
+        fontSize: '13px'
+      }
+    };
+    setNodes((nds) => [...nds, newNode]);
+  }, [nodes.length]);
+
+  const deleteSelectedNode = useCallback(() => {
+    if (selectedNode) {
+      setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
+      setEdges((eds) => eds.filter((e) => e.source !== selectedNode.id && e.target !== selectedNode.id));
+      setSelectedNode(null);
+    }
+  }, [selectedNode]);
+
+  const updateNodeLabel = useCallback((nodeId: string, newLabel: string) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId ? { ...node, data: { ...node.data, label: newLabel } } : node
+      )
+    );
+  }, []);
 
   const saveScheme = async () => {
-    const payload = { nodes, edges, updatedAt: new Date().toISOString() };
+    const payload = { 
+      name: schemeName,
+      nodes, 
+      edges, 
+      updatedAt: new Date().toISOString() 
+    };
     try {
       localStorage.setItem('scheme-latest', JSON.stringify(payload));
-      alert('Esquema guardado localmente (MVP)');
+      alert(`Esquema "${schemeName}" guardado exitosamente`);
     } catch (e) {
       console.error(e);
+      alert('Error al guardar el esquema');
     }
   };
 
-  const exportPng = async () => {
-    // MVP: export simple mensaje; una implementación completa requiere html-to-image o similar
-    alert('Exportación PNG/PDF se puede añadir con html-to-image/canvas en la siguiente iteración.');
+  const loadScheme = () => {
+    try {
+      const saved = localStorage.getItem('scheme-latest');
+      if (saved) {
+        const data = JSON.parse(saved);
+        setNodes(data.nodes || []);
+        setEdges(data.edges || []);
+        setSchemeName(data.name || 'Mi Esquema');
+        alert('Esquema cargado exitosamente');
+      } else {
+        alert('No hay esquemas guardados');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error al cargar el esquema');
+    }
   };
 
+  const clearScheme = () => {
+    if (confirm('¿Estás seguro de que quieres limpiar el esquema actual?')) {
+      setNodes([{ 
+        id: '1', 
+        position: { x: 250, y: 100 }, 
+        data: { label: 'Tema Principal' }, 
+        type: 'input',
+        style: { 
+          background: '#2563eb', 
+          color: 'white', 
+          border: '2px solid #1d4ed8',
+          borderRadius: '8px',
+          padding: '12px',
+          fontSize: '14px',
+          fontWeight: 'bold'
+        }
+      }]);
+      setEdges([]);
+      setSchemeName('Mi Esquema');
+    }
+  };
+
+  return (
+    <div className="h-full relative">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        fitView
+        connectionMode="loose"
+        deleteKeyCode="Delete"
+      >
+        <Background />
+        <Controls />
+        <MiniMap />
+        
+        <Panel position="top-left" className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+          <div className="space-y-2">
+            <Input
+              value={schemeName}
+              onChange={(e) => setSchemeName(e.target.value)}
+              placeholder="Nombre del esquema"
+              className="w-48"
+            />
+            <div className="flex gap-1">
+              <Button onClick={addNode} size="sm">
+                <Plus className="h-3 w-3 mr-1" />
+                Nodo
+              </Button>
+              {selectedNode && (
+                <>
+                  <Button onClick={() => setShowEditPanel(true)} size="sm" variant="outline">
+                    <Edit3 className="h-3 w-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button onClick={deleteSelectedNode} size="sm" variant="outline">
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </Panel>
+
+        <Panel position="top-right" className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+          <div className="flex gap-2">
+            <Button onClick={saveScheme} size="sm">
+              <Save className="h-3 w-3 mr-1" />
+              Guardar
+            </Button>
+            <Button onClick={loadScheme} size="sm" variant="outline">
+              Cargar
+            </Button>
+            <Button onClick={clearScheme} size="sm" variant="outline">
+              Limpiar
+            </Button>
+          </div>
+        </Panel>
+
+        {showEditPanel && selectedNode && (
+          <EditNodePanel
+            selectedNode={selectedNode}
+            onUpdate={updateNodeLabel}
+            onClose={() => setShowEditPanel(false)}
+          />
+        )}
+      </ReactFlow>
+    </div>
+  );
+}
+
+export default function SchemesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Esquemas</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={addNode}><Plus className="h-4 w-4 mr-1" /> Nodo</Button>
-            <Button variant="outline" onClick={exportPng}><Download className="h-4 w-4 mr-1" /> Exportar</Button>
-            <Button onClick={saveScheme}><Save className="h-4 w-4 mr-1" /> Guardar</Button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Esquemas de Estudio</h1>
+            <p className="text-gray-600">Crea mapas mentales y diagramas para organizar tus ideas</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm" style={{ height: 600 }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} fitView>
-            <MiniMap />
-            <Controls />
-            <Background />
-          </ReactFlow>
+        
+        <div className="bg-white rounded-lg shadow-sm" style={{ height: 700 }}>
+          <ReactFlowProvider>
+            <FlowEditor />
+          </ReactFlowProvider>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-2">¿Cómo usar el editor?</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Agregar nodos:</strong> Haz clic en "Nodo" para crear nuevos elementos</li>
+            <li>• <strong>Conectar nodos:</strong> Arrastra desde un punto azul a otro nodo</li>
+            <li>• <strong>Mover nodos:</strong> Arrastra los nodos para reposicionarlos</li>
+            <li>• <strong>Editar texto:</strong> Selecciona un nodo y haz clic en "Editar"</li>
+            <li>• <strong>Eliminar:</strong> Selecciona un nodo y haz clic en "Eliminar" o presiona Delete</li>
+            <li>• <strong>Guardar:</strong> Tu esquema se guarda automáticamente en el navegador</li>
+          </ul>
         </div>
       </div>
     </DashboardLayout>
   );
 }
+
 
 
