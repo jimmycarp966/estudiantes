@@ -19,10 +19,16 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Save, Plus, Download, Trash2, Edit3, X } from 'lucide-react';
+import { Save, Plus, Trash2, Edit3, X } from 'lucide-react';
 
 // Componente para editar nodos
-function EditNodePanel({ selectedNode, onUpdate, onClose }: any) {
+interface EditNodePanelProps {
+  selectedNode: Node;
+  onUpdate: (nodeId: string, newLabel: string) => void;
+  onClose: () => void;
+}
+
+function EditNodePanel({ selectedNode, onUpdate, onClose }: EditNodePanelProps) {
   const [label, setLabel] = useState(selectedNode?.data?.label || '');
 
   const handleSave = () => {
@@ -74,8 +80,6 @@ function FlowEditor() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [schemeName, setSchemeName] = useState('Mi Esquema');
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { project } = useReactFlow();
 
   const onConnect = useCallback((params: Edge | Connection) => {
     setEdges((eds) => addEdge({

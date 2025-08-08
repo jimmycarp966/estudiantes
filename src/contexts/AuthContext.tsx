@@ -198,26 +198,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = async () => {
-    const { getAuth, GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-    const { initializeApp, getApps } = await import('firebase/app');
-    
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    };
-    
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    const auth = getAuth(app);
-    const googleProvider = new GoogleAuthProvider();
-    googleProvider.setCustomParameters({
-      prompt: 'select_account'
-    });
-    
-    await signInWithPopup(auth, googleProvider);
+    try {
+      const { getAuth, GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+      const { getFirestore, doc, getDoc, setDoc } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const googleProvider = new GoogleAuthProvider();
+      
+      // Configurar parámetros del proveedor
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // Agregar scopes si es necesario
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
+      
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      
+      // Verificar si el usuario ya existe en Firestore
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      
+      if (!userDoc.exists()) {
+        // Crear nuevo usuario en Firestore
+        const newUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email!,
+          displayName: firebaseUser.displayName || 'Usuario',
+          photoURL: firebaseUser.photoURL || '',
+          createdAt: new Date(),
+          lastLoginAt: new Date(),
+          role: 'user',
+          isVerified: true,
+          stats: {
+            totalUploads: 0,
+            totalDownloads: 0,
+            totalRatings: 0,
+            studyStreak: 0
+          }
+        };
+        
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+      } else {
+        // Actualizar último login
+        await setDoc(doc(db, 'users', firebaseUser.uid), {
+          lastLoginAt: new Date()
+        }, { merge: true });
+      }
+      
+    } catch (error: any) {
+      console.error('Error en login con Google:', error);
+      
+      let errorMessage = 'Error al iniciar sesión con Google';
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Se cerró la ventana de Google. Intenta de nuevo.';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'El navegador bloqueó la ventana de Google. Permite popups para este sitio.';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = 'Este dominio no está autorizado para autenticación con Google.';
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = 'Ya existe una cuenta con este email usando otro método de autenticación.';
+      }
+      
+      alert(errorMessage);
+      throw error;
+    }
   };
 
   const logout = async () => {
