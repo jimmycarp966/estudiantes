@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@/types';
+import { initializeFirebaseIndexes } from '@/lib/firebaseIndexes';
 
 interface AuthContextType {
   user: User | null;
@@ -140,6 +141,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     initAuth();
+    
+    // Verificar índices de Firestore
+    initializeFirebaseIndexes();
   }, []);
 
   const login = async (email: string, password: string) => {

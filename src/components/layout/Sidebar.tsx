@@ -22,7 +22,8 @@ import {
   Shield,
   Flag,
   TrendingUp,
-  Users
+  Users,
+  Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -45,6 +46,7 @@ const getNavigation = (isAdmin: boolean, isModerator: boolean) => {
     { name: 'Reportes', href: '/admin/reports', icon: Flag },
     { name: 'Usuarios', href: '/admin/users', icon: Users },
     { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+    { name: 'Índices Firestore', href: '/admin/indexes', icon: Database },
   ];
 
   const moderatorNavigation = [

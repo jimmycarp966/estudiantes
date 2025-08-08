@@ -229,7 +229,7 @@ function FlowEditor() {
         deleteKeyCode="Delete"
         onError={(error) => {
           console.error('ReactFlow error:', error);
-          setError(`Error en ReactFlow: ${error.message}`);
+          setError(`Error en ReactFlow: ${error}`);
         }}
       >
         <Background />
