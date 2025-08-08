@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import React, { useCallback, useState } from 'react';
-import ReactFlow, { Background, Controls, MiniMap, addEdge, Connection, Edge, Node, OnNodesChange, OnEdgesChange } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, addEdge, Connection, Edge, Node, NodeChange, EdgeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/Button';
 import { Save, Plus, Download } from 'lucide-react';
@@ -16,6 +16,36 @@ export default function SchemesPage() {
   const [edges, setEdges] = useState<Edge[]>([{ id: 'e1-2', source: '1', target: '2' }, { id: 'e1-3', source: '1', target: '3' }]);
 
   const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), []);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => {
+      const updatedNodes = [...nds];
+      changes.forEach((change) => {
+        if (change.type === 'position' && change.position) {
+          const node = updatedNodes.find((n) => n.id === change.id);
+          if (node) {
+            node.position = change.position;
+          }
+        }
+      });
+      return updatedNodes;
+    });
+  }, []);
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setEdges((eds) => {
+      const updatedEdges = [...eds];
+      changes.forEach((change) => {
+        if (change.type === 'remove') {
+          const index = updatedEdges.findIndex((e) => e.id === change.id);
+          if (index !== -1) {
+            updatedEdges.splice(index, 1);
+          }
+        }
+      });
+      return updatedEdges;
+    });
+  }, []);
 
   const addNode = () => {
     const id = (nodes.length + 1).toString();
@@ -49,7 +79,7 @@ export default function SchemesPage() {
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm" style={{ height: 600 }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={setNodes as OnNodesChange} onEdgesChange={setEdges as OnEdgesChange} onConnect={onConnect} fitView>
+          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} fitView>
             <MiniMap />
             <Controls />
             <Background />

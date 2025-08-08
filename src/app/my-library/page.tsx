@@ -68,9 +68,12 @@ export default function MyLibraryPage() {
           
           setNotes(notesData);
           setLoading(false);
+        }, (error) => {
+          console.error('Error loading notes:', error);
+          setLoading(false);
         });
 
-        return unsubscribe;
+        return () => unsubscribe();
       } catch (error) {
         console.error('Error initializing Firestore:', error);
         setLoading(false);

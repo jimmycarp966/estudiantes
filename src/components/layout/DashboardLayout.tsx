@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from './Sidebar';
-import { Footer } from './Footer';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -44,8 +43,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           </div>
         </main>
       </div>
-      
-      <Footer />
     </div>
   );
 };
