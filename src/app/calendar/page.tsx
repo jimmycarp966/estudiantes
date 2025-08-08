@@ -106,7 +106,7 @@ export default function CalendarPage() {
     // recargar sesiones
     const { getDocs: getDocsReload, getFirestore: getDb } = await import('firebase/firestore');
     const db2 = getDb(app);
-    const snap = await getDocsReload(collection(db2, 'studySessions'));
+    await getDocsReload(collection(db2, 'studySessions'));
     // Nota: en producción filtrar/ordenar
   };
 

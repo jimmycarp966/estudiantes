@@ -1,7 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import ReactFlow, { Background, Controls, MiniMap, addEdge, Connection, Edge, Node } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/Button';
@@ -49,7 +49,7 @@ export default function SchemesPage() {
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm" style={{ height: 600 }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={setNodes as any} onEdgesChange={setEdges as any} onConnect={onConnect} fitView>
+          <ReactFlow nodes={nodes} edges={edges} onNodesChange={setNodes} onEdgesChange={setEdges} onConnect={onConnect} fitView>
             <MiniMap />
             <Controls />
             <Background />
