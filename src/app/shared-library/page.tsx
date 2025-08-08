@@ -55,10 +55,10 @@ export default function SharedLibraryPage() {
         const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
         const firestore = getFirestore(app);
         
+        // Query simplificada para evitar problemas de índices
         const q = query(
           collection(firestore, 'notes'),
           where('isPublic', '==', true),
-          orderBy('uploadedAt', 'desc'),
           limit(100)
         );
 
@@ -68,6 +68,9 @@ export default function SharedLibraryPage() {
             ...doc.data(),
             uploadedAt: doc.data().uploadedAt?.toDate() || new Date(),
           })) as Note[];
+          
+          // Ordenar por fecha en el cliente para evitar problemas de índices
+          notesData.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
           
           setNotes(notesData);
           setLoading(false);

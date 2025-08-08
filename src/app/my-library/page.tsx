@@ -53,10 +53,10 @@ export default function MyLibraryPage() {
         const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
         const firestore = getFirestore(app);
         
+        // Query simplificada para evitar problemas de índices
         const q = query(
           collection(firestore, 'notes'),
-          where('uploadedBy', '==', user.uid),
-          orderBy('uploadedAt', 'desc')
+          where('uploadedBy', '==', user.uid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -65,6 +65,9 @@ export default function MyLibraryPage() {
             ...doc.data(),
             uploadedAt: doc.data().uploadedAt?.toDate() || new Date(),
           })) as Note[];
+          
+          // Ordenar por fecha en el cliente para evitar problemas de índices
+          notesData.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
           
           setNotes(notesData);
           setLoading(false);
