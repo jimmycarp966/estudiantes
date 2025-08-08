@@ -32,49 +32,22 @@ export class AIService {
   }
 
   async generateSummary(request: AISummaryRequest): Promise<AISummaryResponse> {
-    if (!this.apiKey) {
-      // Fallback a resumen básico sin IA
-      return this.generateBasicSummary(request);
-    }
-
     try {
-      const prompt = this.buildPrompt(request);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch('/api/ai/summary', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'Eres un asistente educativo especializado en crear resúmenes claros y útiles para estudiantes universitarios. Responde siempre en español.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.7
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
       });
-
-      if (!response.ok) {
-        throw new Error('Error en la API de OpenAI');
-      }
-
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      
-      if (!content) {
-        throw new Error('Respuesta vacía de la IA');
-      }
-
-      return this.parseAIResponse(content, request);
+      if (!res.ok) throw new Error('AI summary endpoint error');
+      const data = await res.json();
+      return {
+        summary: data.summary || '',
+        keyPoints: data.keyPoints || [],
+        questions: data.questions || [],
+        difficulty: data.difficulty || 'intermediate',
+        estimatedTime: data.estimatedTime || 30,
+        tags: data.tags || [],
+      } as AISummaryResponse;
     } catch (error) {
       console.error('Error generando resumen con IA:', error);
       return this.generateBasicSummary(request);
@@ -213,57 +186,15 @@ export class AIService {
   }
 
   async generateFlashcards(contentText: string, subject: string): Promise<Array<{question: string, answer: string}>> {
-    if (!this.apiKey) {
-      return this.generateBasicFlashcards(contentText);
-    }
-
     try {
-      const contentSubstring = contentText.substring(0, 1500);
-      const promptText: string = `Genera 5 tarjetas de estudio (flashcards) para el siguiente contenido de ${subject}:\n\n${contentSubstring}...\n\nResponde en formato JSON:\n[{"question": "pregunta", "answer": "respuesta"}, ...]`;
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch('/api/ai/flashcards', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'Eres un asistente educativo especializado en crear tarjetas de estudio efectivas. Responde siempre en español.'
-            },
-            {
-              role: 'user',
-              content: promptText
-            }
-          ],
-          max_tokens: 800,
-          temperature: 0.7
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contentText, subject }),
       });
-
-      if (!response.ok) {
-        throw new Error('Error en la API de OpenAI');
-      }
-
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      
-      if (!content) {
-        throw new Error('Respuesta vacía de la IA');
-      }
-
-      try {
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
-        }
-      } catch (error) {
-        console.error('Error parseando flashcards:', error);
-      }
-
+      if (!res.ok) throw new Error('AI flashcards endpoint error');
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
       return this.generateBasicFlashcards(contentText);
     } catch (error) {
       console.error('Error generando flashcards con IA:', error);
@@ -285,56 +216,15 @@ export class AIService {
     weeklyGoals: string[];
     tips: string[];
   }> {
-    if (!this.apiKey) {
-      return this.generateBasicStudyPlan(subjects, availableTime);
-    }
-
     try {
-      const prompt = `Crea un plan de estudio personalizado para las siguientes materias: ${subjects.join(', ')}. Tiempo disponible: ${availableTime} minutos por día. Incluye:\n1. Plan diario con tiempo por materia\n2. Metas semanales\n3. Consejos de estudio\nResponde en JSON.`;
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch('/api/ai/plan', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'Eres un tutor educativo especializado en crear planes de estudio efectivos. Responde siempre en español.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.7
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subjects, availableTime }),
       });
-
-      if (!response.ok) {
-        throw new Error('Error en la API de OpenAI');
-      }
-
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      
-      if (!content) {
-        throw new Error('Respuesta vacía de la IA');
-      }
-
-      try {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
-        }
-      } catch (error) {
-        console.error('Error parseando plan de estudio:', error);
-      }
-
+      if (!res.ok) throw new Error('AI plan endpoint error');
+      const data = await res.json();
+      if (data && data.dailyPlan) return data;
       return this.generateBasicStudyPlan(subjects, availableTime);
     } catch (error) {
       console.error('Error generando plan de estudio con IA:', error);

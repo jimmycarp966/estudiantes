@@ -104,6 +104,31 @@ export const NoteCard: React.FC<NoteCardProps> = ({
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                 <div className="py-1">
                   <button
+                    onClick={async () => {
+                      setShowMenu(false);
+                      try {
+                        const aiContent = `${note.title}. ${note.description || ''}`;
+                        const { AIService } = await import('@/lib/aiService');
+                        const ai = AIService.getInstance();
+                        const result = await ai.generateSummary({
+                          content: aiContent,
+                          subject: note.subject,
+                          title: note.title,
+                          type: 'summary'
+                        });
+                        alert('Resumen generado. Copiado al portapapeles.');
+                        await navigator.clipboard.writeText(result.summary);
+                      } catch (e) {
+                        console.error(e);
+                        alert('No se pudo generar el resumen');
+                      }
+                    }}
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Resumen con IA
+                  </button>
+                  <button
                     onClick={() => {
                       setShowMenu(false);
                       // Ver/previsualizar

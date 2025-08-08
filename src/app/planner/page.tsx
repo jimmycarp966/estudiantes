@@ -109,6 +109,15 @@ export default function PlannerPage() {
       };
 
       await addDoc(collection(db, 'studySessions'), sessionData);
+      try {
+        // Notificación local inmediata como confirmación
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'default') await Notification.requestPermission();
+          if (Notification.permission === 'granted') {
+            new Notification('Sesión creada', { body: `${newSession.title} el ${new Date(newSession.startTime).toLocaleString()}` });
+          }
+        }
+      } catch {}
       
       setNewSession({
         title: '',

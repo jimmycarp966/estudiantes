@@ -33,6 +33,9 @@ const getNavigation = (isAdmin: boolean, isModerator: boolean) => {
     { name: 'Biblioteca Colaborativa', href: '/shared-library', icon: Library },
     { name: 'Subir Apuntes', href: '/upload', icon: Upload },
     { name: 'Herramientas de Estudio', href: '/study-tools', icon: Clock },
+    { name: 'Esquemas', href: '/study-tools/schemes', icon: Target },
+    { name: 'Calendario', href: '/calendar', icon: Calendar },
+    { name: 'Materias', href: '/subjects', icon: BookOpen },
     { name: 'Planificador', href: '/planner', icon: Calendar },
     { name: 'Progreso', href: '/progress', icon: Target },
   ];
