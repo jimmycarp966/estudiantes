@@ -17,9 +17,15 @@ export const useAnalytics = () => {
   const track = useCallback(async (eventName: string, properties?: Record<string, unknown>) => {
     if (typeof window === 'undefined') return;
 
+    // Solo trackear si el usuario está autenticado
+    if (!user?.uid) {
+      console.log('Analytics: Usuario no autenticado, omitiendo evento:', eventName);
+      return;
+    }
+
     const event: AnalyticsEvent = {
       event: eventName,
-      userId: user?.uid,
+      userId: user.uid,
       properties: {
         ...properties,
         userAgent: navigator.userAgent,

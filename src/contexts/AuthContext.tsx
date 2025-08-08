@@ -131,6 +131,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           setLoading(false);
+          
+          // Verificar índices de Firestore después de la autenticación
+          if (firebaseUser) {
+            initializeFirebaseIndexes();
+          }
         });
 
         return unsubscribe;
@@ -141,9 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     initAuth();
-    
-    // Verificar índices de Firestore
-    initializeFirebaseIndexes();
   }, []);
 
   const login = async (email: string, password: string) => {

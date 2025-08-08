@@ -23,7 +23,8 @@ import {
   Flag,
   TrendingUp,
   Users,
-  Database
+  Database,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -46,7 +47,9 @@ const getNavigation = (isAdmin: boolean, isModerator: boolean) => {
     { name: 'Reportes', href: '/admin/reports', icon: Flag },
     { name: 'Usuarios', href: '/admin/users', icon: Users },
     { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+    { name: 'Monitoreo', href: '/admin/monitoring', icon: BarChart3 },
     { name: 'Índices Firestore', href: '/admin/indexes', icon: Database },
+    { name: 'Seguridad', href: '/admin/security', icon: Shield },
   ];
 
   const moderatorNavigation = [

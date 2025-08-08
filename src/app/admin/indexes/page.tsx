@@ -139,12 +139,12 @@ export default function IndexesPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h3 className="font-semibold text-blue-900 mb-2">¿Cómo crear índices?</h3>
           <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-            <li>Haz clic en "Firebase Console" para abrir la consola</li>
+            <li>Haz clic en &quot;Firebase Console&quot; para abrir la consola</li>
             <li>Ve a Firestore Database → Índices</li>
-            <li>Haz clic en "Crear índice"</li>
+            <li>Haz clic en &quot;Crear índice&quot;</li>
             <li>Selecciona la colección y los campos mostrados abajo</li>
             <li>Configura el orden (Ascending/Descending) según se indica</li>
-            <li>Haz clic en "Crear"</li>
+            <li>Haz clic en &quot;Crear&quot;</li>
           </ol>
         </div>
 
