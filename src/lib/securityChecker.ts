@@ -201,11 +201,11 @@ export class SecurityChecker {
         });
       }
 
-    } catch (error: unknown) {
+    } catch {
       results.push({
         test: 'Test de acceso no autorizado',
         passed: false,
-        error: String(error)
+        error: 'Error desconocido'
       });
     }
 

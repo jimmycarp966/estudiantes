@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@/types';
 import { initializeFirebaseIndexes } from '@/lib/firebaseIndexes';
+import { setupAdminPromotion } from '@/lib/adminUtils';
 
 interface AuthContextType {
   user: User | null;
@@ -66,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const adminEmails = [
               'admin@estudiantes.com',
               'tu_email@gmail.com', // Cambia por tu email real
+              'daniel@gmail.com', // Administrador principal
             ];
             
             if (userDoc.exists()) {
@@ -135,6 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Verificar índices de Firestore después de la autenticación
           if (firebaseUser) {
             initializeFirebaseIndexes();
+            // Configurar utilidades de administrador
+            setupAdminPromotion();
           }
         });
 

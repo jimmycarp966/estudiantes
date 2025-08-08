@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/Input';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
-  const { isAdmin, promoteToModerator, banUser } = useAdmin();
+  const { isAdmin, promoteToModerator, promoteToAdmin, banUser } = useAdmin();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,6 +74,22 @@ export default function AdminUsersPage() {
       alert('Usuario promovido a moderador exitosamente');
     } catch (error) {
       console.error('Error promoting user:', error);
+      alert('Error al promover usuario');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePromoteToAdmin = async (userId: string) => {
+    if (!confirm('¿Estás seguro de que quieres promover este usuario a administrador?')) return;
+    
+    setActionLoading(userId);
+    try {
+      await promoteToAdmin(userId);
+      await loadUsers(); // Recargar lista
+      alert('Usuario promovido a administrador exitosamente');
+    } catch (error) {
+      console.error('Error promoting user to admin:', error);
       alert('Error al promover usuario');
     } finally {
       setActionLoading(null);
@@ -255,6 +271,19 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
+                          {userData.role !== 'admin' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handlePromoteToAdmin(userData.uid)}
+                              disabled={actionLoading === userData.uid}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Shield className="h-4 w-4 mr-1" />
+                              Promover a Admin
+                            </Button>
+                          )}
+                          
                           {userData.role === 'user' && (
                             <Button
                               size="sm"
@@ -263,7 +292,7 @@ export default function AdminUsersPage() {
                               disabled={actionLoading === userData.uid}
                             >
                               <UserCheck className="h-4 w-4 mr-1" />
-                              Promover
+                              Promover a Moderador
                             </Button>
                           )}
                           

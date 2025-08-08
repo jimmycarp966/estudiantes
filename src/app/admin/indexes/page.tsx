@@ -1,66 +1,171 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState, useCallback } from 'react';
+import { Database, ExternalLink, AlertTriangle, CheckCircle, XCircle, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { createMissingIndexes } from '@/lib/firebaseIndexes';
-import { 
-  Database, 
-  CheckCircle, 
-  AlertTriangle, 
-  ExternalLink,
-  RefreshCw
-} from 'lucide-react';
+import { generateFirebaseIndexCommands } from '@/lib/firebaseIndexes';
 
 interface IndexStatus {
-  name: string;
   collection: string;
   fields: string[];
-  status: 'exists' | 'missing' | 'checking';
+  description: string;
+  exists: boolean;
   error?: string;
 }
 
 export default function IndexesPage() {
-  const [indexes, setIndexes] = useState<IndexStatus[]>([
-    {
-      name: 'Notas por usuario ordenadas por fecha',
-      collection: 'notes',
-      fields: ['uploadedBy', 'uploadedAt'],
-      status: 'checking'
-    },
-    {
-      name: 'Notas públicas ordenadas por fecha',
-      collection: 'notes',
-      fields: ['isPublic', 'uploadedAt'],
-      status: 'checking'
-    },
-    {
-      name: 'Favoritos por usuario',
-      collection: 'favorites',
-      fields: ['userId'],
-      status: 'checking'
-    }
-  ]);
+  const { user } = useAuth();
+  const [indexes, setIndexes] = useState<IndexStatus[]>([]);
+  const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
 
-  const checkIndexes = async () => {
+  const requiredIndexes = [
+    {
+      collection: 'notes',
+      fields: ['uploadedBy', 'uploadedAt'],
+      description: 'Notas por usuario ordenadas por fecha'
+    },
+    {
+      collection: 'notes',
+      fields: ['isPublic', 'uploadedAt'],
+      description: 'Notas públicas ordenadas por fecha'
+    },
+    {
+      collection: 'favorites',
+      fields: ['userId'],
+      description: 'Favoritos por usuario'
+    },
+    {
+      collection: 'studySessions',
+      fields: ['userId', 'startTime'],
+      description: 'Sesiones de estudio por usuario ordenadas por fecha'
+    },
+    {
+      collection: 'studySessions',
+      fields: ['userId', 'status'],
+      description: 'Sesiones de estudio completadas por usuario'
+    },
+    {
+      collection: 'subjects',
+      fields: ['userId', 'createdAt'],
+      description: 'Materias por usuario ordenadas por fecha'
+    },
+    {
+      collection: 'reviews',
+      fields: ['noteId', 'createdAt'],
+      description: 'Reseñas por nota ordenadas por fecha'
+    }
+  ];
+
+  const checkIndexes = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    
     setChecking(true);
+    const results: IndexStatus[] = [];
+
     try {
-      await createMissingIndexes();
+      const { getFirestore, collection, query, where, orderBy, getDocs } = await import('firebase/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
       
-      // Simular verificación de índices
-      setTimeout(() => {
-        setIndexes(prev => prev.map(index => ({
-          ...index,
-          status: Math.random() > 0.5 ? 'exists' : 'missing'
-        })));
-        setChecking(false);
-      }, 2000);
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      };
+      
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const db = getFirestore(app);
+
+      for (const indexConfig of requiredIndexes) {
+        try {
+          let testQuery;
+          
+          if (indexConfig.collection === 'notes' && indexConfig.fields.includes('uploadedBy')) {
+            testQuery = query(
+              collection(db, 'notes'),
+              where('uploadedBy', '==', 'test'),
+              orderBy('uploadedAt', 'desc')
+            );
+          } else if (indexConfig.collection === 'notes' && indexConfig.fields.includes('isPublic')) {
+            testQuery = query(
+              collection(db, 'notes'),
+              where('isPublic', '==', true),
+              orderBy('uploadedAt', 'desc')
+            );
+          } else if (indexConfig.collection === 'favorites') {
+            testQuery = query(
+              collection(db, 'favorites'),
+              where('userId', '==', 'test')
+            );
+          } else if (indexConfig.collection === 'studySessions' && indexConfig.fields.includes('startTime')) {
+            testQuery = query(
+              collection(db, 'studySessions'),
+              where('userId', '==', 'test'),
+              orderBy('startTime', 'asc')
+            );
+          } else if (indexConfig.collection === 'studySessions' && indexConfig.fields.includes('status')) {
+            testQuery = query(
+              collection(db, 'studySessions'),
+              where('userId', '==', 'test'),
+              where('status', '==', 'completed')
+            );
+          } else if (indexConfig.collection === 'subjects') {
+            testQuery = query(
+              collection(db, 'subjects'),
+              where('userId', '==', 'test'),
+              orderBy('createdAt', 'desc')
+            );
+          } else if (indexConfig.collection === 'reviews') {
+            testQuery = query(
+              collection(db, 'reviews'),
+              where('noteId', '==', 'test'),
+              orderBy('createdAt', 'desc')
+            );
+          }
+
+          if (testQuery) {
+            await getDocs(testQuery);
+            results.push({
+              ...indexConfig,
+              exists: true
+            });
+          }
+        } catch (error: unknown) {
+          const err = error as { code?: string; message?: string };
+          if (err.code === 'failed-precondition') {
+            results.push({
+              ...indexConfig,
+              exists: false,
+              error: 'Índice faltante'
+            });
+          } else {
+            results.push({
+              ...indexConfig,
+              exists: false,
+              error: err.message || 'Error desconocido'
+            });
+          }
+        }
+      }
     } catch (error) {
       console.error('Error checking indexes:', error);
-      setChecking(false);
     }
-  };
+
+    setIndexes(results);
+    setChecking(false);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      checkIndexes();
+    }
+  }, [user, checkIndexes]);
 
   const openFirebaseConsole = () => {
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -68,145 +173,183 @@ export default function IndexesPage() {
     window.open(url, '_blank');
   };
 
-  useEffect(() => {
-    checkIndexes();
-  }, []);
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'exists':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'missing':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      default:
-        return <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />;
-    }
+  const copyCommandsToClipboard = () => {
+    const commands = generateFirebaseIndexCommands();
+    const commandsText = commands.join('\n');
+    navigator.clipboard.writeText(commandsText);
+    alert('Comandos copiados al portapapeles');
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'exists':
-        return 'Índice existente';
-      case 'missing':
-        return 'Índice faltante';
-      default:
-        return 'Verificando...';
-    }
-  };
+  const missingIndexes = indexes.filter(index => !index.exists);
+  const existingIndexes = indexes.filter(index => index.exists);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'exists':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'missing':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      default:
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-    }
-  };
+  if (!user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">Debes iniciar sesión para acceder a esta página.</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Database className="h-8 w-8 text-blue-600 mr-3" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Índices de Firestore</h1>
-                <p className="text-gray-600">Gestiona los índices necesarios para las consultas</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={checkIndexes} 
-                disabled={checking}
-                variant="outline"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-                Verificar
-              </Button>
-              <Button onClick={openFirebaseConsole}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Firebase Console
-              </Button>
-            </div>
+        <div className="flex items-center gap-3">
+          <Database className="h-8 w-8 text-blue-600" />
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Índices de Firestore</h1>
+            <p className="text-gray-600">Gestiona los índices necesarios para el funcionamiento de la aplicación</p>
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-2">¿Cómo crear índices?</h3>
-          <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-            <li>Haz clic en &quot;Firebase Console&quot; para abrir la consola</li>
-            <li>Ve a Firestore Database → Índices</li>
-            <li>Haz clic en &quot;Crear índice&quot;</li>
-            <li>Selecciona la colección y los campos mostrados abajo</li>
-            <li>Configura el orden (Ascending/Descending) según se indica</li>
-            <li>Haz clic en &quot;Crear&quot;</li>
-          </ol>
+        <div className="flex gap-4 flex-wrap">
+          <Button 
+            onClick={checkIndexes} 
+            disabled={checking}
+            className="flex items-center gap-2"
+          >
+            {checking ? 'Verificando...' : 'Verificar Índices'}
+          </Button>
+          
+          <Button 
+            onClick={openFirebaseConsole}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Abrir Firebase Console
+          </Button>
+
+          <Button 
+            onClick={copyCommandsToClipboard}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Terminal className="h-4 w-4" />
+            Copiar Comandos CLI
+          </Button>
         </div>
 
-        {/* Indexes List */}
-        <div className="space-y-4">
-          {indexes.map((index, idx) => (
-            <div 
-              key={idx}
-              className={`bg-white rounded-lg shadow-sm p-6 border ${getStatusColor(index.status)}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  {getStatusIcon(index.status)}
-                  <div className="ml-3">
-                    <h3 className="font-semibold text-gray-900">{index.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      Colección: <strong>{index.collection}</strong> | 
-                      Campos: <strong>{index.fields.join(', ')}</strong>
-                    </p>
-                    <p className={`text-sm font-medium ${getStatusColor(index.status).split(' ')[0]}`}>
-                      {getStatusText(index.status)}
-                    </p>
-                  </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-gray-500">Verificando índices...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Índices faltantes */}
+            {missingIndexes.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <h3 className="text-lg font-semibold text-red-900">
+                    Índices Faltantes ({missingIndexes.length})
+                  </h3>
                 </div>
                 
-                {index.status === 'missing' && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={openFirebaseConsole}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Crear
-                  </Button>
-                )}
+                <div className="space-y-3">
+                  {missingIndexes.map((index, i) => (
+                    <div key={i} className="bg-white rounded-lg p-4 border border-red-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{index.description}</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Colección: <span className="font-mono">{index.collection}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Campos: <span className="font-mono">{index.fields.join(', ')}</span>
+                          </p>
+                          {index.error && (
+                            <p className="text-sm text-red-600 mt-1">{index.error}</p>
+                          )}
+                        </div>
+                        <XCircle className="h-5 w-5 text-red-500 mt-1" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                                 <div className="mt-4 p-4 bg-red-100 rounded-lg">
+                   <p className="text-sm text-red-800 mb-3">
+                     <strong>Instrucciones:</strong> Ve a Firebase Console y crea los índices faltantes. 
+                     Los índices pueden tardar varios minutos en construirse.
+                   </p>
+                   <div className="flex gap-2">
+                     <Button 
+                       onClick={copyCommandsToClipboard}
+                       size="sm"
+                       variant="outline"
+                       className="flex items-center gap-2"
+                     >
+                       <Terminal className="h-3 w-3" />
+                       Copiar Comandos CLI
+                     </Button>
+                     <Button 
+                       onClick={openFirebaseConsole}
+                       size="sm"
+                       variant="outline"
+                       className="flex items-center gap-2"
+                     >
+                       <ExternalLink className="h-3 w-3" />
+                       Abrir Console
+                     </Button>
+                   </div>
+                 </div>
+              </div>
+            )}
+
+            {/* Índices existentes */}
+            {existingIndexes.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-green-900">
+                    Índices Existentes ({existingIndexes.length})
+                  </h3>
+                </div>
+                
+                <div className="space-y-3">
+                  {existingIndexes.map((index, i) => (
+                    <div key={i} className="bg-white rounded-lg p-4 border border-green-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{index.description}</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Colección: <span className="font-mono">{index.collection}</span>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Campos: <span className="font-mono">{index.fields.join(', ')}</span>
+                          </p>
+                        </div>
+                        <CheckCircle className="h-5 w-5 text-green-500 mt-1" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Resumen */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-3">Resumen</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{indexes.length}</div>
+                  <div className="text-sm text-blue-800">Total de Índices</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{existingIndexes.length}</div>
+                  <div className="text-sm text-green-800">Existentes</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{missingIndexes.length}</div>
+                  <div className="text-sm text-red-800">Faltantes</div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button 
-              onClick={openFirebaseConsole}
-              className="w-full"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Abrir Firebase Console
-            </Button>
-            <Button 
-              onClick={checkIndexes}
-              disabled={checking}
-              variant="outline"
-              className="w-full"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-              Verificar Índices
-            </Button>
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );
