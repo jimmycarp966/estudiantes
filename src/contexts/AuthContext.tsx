@@ -259,23 +259,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, { merge: true });
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
       console.error('Error en login con Google:', error);
       
       let errorMessage = 'Error al iniciar sesión con Google';
       
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/popup-closed-by-user') {
         errorMessage = 'Se cerró la ventana de Google. Intenta de nuevo.';
-      } else if (error.code === 'auth/popup-blocked') {
+      } else if (err.code === 'auth/popup-blocked') {
         errorMessage = 'El navegador bloqueó la ventana de Google. Permite popups para este sitio.';
-      } else if (error.code === 'auth/unauthorized-domain') {
+      } else if (err.code === 'auth/unauthorized-domain') {
         errorMessage = 'Este dominio no está autorizado para autenticación con Google.';
-      } else if (error.code === 'auth/account-exists-with-different-credential') {
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
         errorMessage = 'Ya existe una cuenta con este email usando otro método de autenticación.';
       }
       
       alert(errorMessage);
-      throw error;
+      throw err;
     }
   };
 

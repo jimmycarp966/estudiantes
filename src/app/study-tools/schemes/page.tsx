@@ -1,7 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -13,7 +13,6 @@ import ReactFlow, {
   NodeChange, 
   EdgeChange,
   ReactFlowProvider,
-  useReactFlow,
   Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -226,7 +225,6 @@ function FlowEditor() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         fitView
-        connectionMode="loose"
         deleteKeyCode="Delete"
       >
         <Background />
@@ -309,12 +307,12 @@ export default function SchemesPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">¿Cómo usar el editor?</h3>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Agregar nodos:</strong> Haz clic en "Nodo" para crear nuevos elementos</li>
-            <li>• <strong>Conectar nodos:</strong> Arrastra desde un punto azul a otro nodo</li>
-            <li>• <strong>Mover nodos:</strong> Arrastra los nodos para reposicionarlos</li>
-            <li>• <strong>Editar texto:</strong> Selecciona un nodo y haz clic en "Editar"</li>
-            <li>• <strong>Eliminar:</strong> Selecciona un nodo y haz clic en "Eliminar" o presiona Delete</li>
-            <li>• <strong>Guardar:</strong> Tu esquema se guarda automáticamente en el navegador</li>
+                         <li>• <strong>Agregar nodos:</strong> Haz clic en &quot;Nodo&quot; para crear nuevos elementos</li>
+             <li>• <strong>Conectar nodos:</strong> Arrastra desde un punto azul a otro nodo</li>
+             <li>• <strong>Mover nodos:</strong> Arrastra los nodos para reposicionarlos</li>
+             <li>• <strong>Editar texto:</strong> Selecciona un nodo y haz clic en &quot;Editar&quot;</li>
+             <li>• <strong>Eliminar:</strong> Selecciona un nodo y haz clic en &quot;Eliminar&quot; o presiona Delete</li>
+             <li>• <strong>Guardar:</strong> Tu esquema se guarda automáticamente en el navegador</li>
           </ul>
         </div>
       </div>

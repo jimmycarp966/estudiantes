@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 
 export default function DebugPage() {
-  const [config, setConfig] = useState<any>({});
+  const [config, setConfig] = useState<Record<string, string | undefined>>({});
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
@@ -36,9 +36,10 @@ export default function DebugPage() {
       
       const result = await signInWithPopup(auth, googleProvider);
       alert(`Login exitoso: ${result.user.email}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
       console.error('Error de autenticación:', error);
-      setError(`Error: ${error.code} - ${error.message}`);
+      setError(`Error: ${err.code} - ${err.message}`);
     }
   };
 
