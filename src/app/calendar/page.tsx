@@ -11,8 +11,9 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 
-const locales = { es } as unknown as Record<string, Locale>;
+const locales = { es } as Record<string, Locale>;
 const localizer = dateFnsLocalizer({
   format,
   parse,

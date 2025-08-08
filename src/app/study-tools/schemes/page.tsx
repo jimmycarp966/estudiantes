@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import React, { useCallback, useState } from 'react';
-import ReactFlow, { Background, Controls, MiniMap, addEdge, Connection, Edge, Node } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, addEdge, Connection, Edge, Node, OnNodesChange, OnEdgesChange } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/Button';
 import { Save, Plus, Download } from 'lucide-react';
@@ -49,7 +49,7 @@ export default function SchemesPage() {
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm" style={{ height: 600 }}>
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={setNodes} onEdgesChange={setEdges} onConnect={onConnect} fitView>
+          <ReactFlow nodes={nodes} edges={edges} onNodesChange={setNodes as OnNodesChange} onEdgesChange={setEdges as OnEdgesChange} onConnect={onConnect} fitView>
             <MiniMap />
             <Controls />
             <Background />
